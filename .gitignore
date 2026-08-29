@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.env
+.env.local
+.vercel/
+.remember/
+coverage/
+
+DEVPOST.md
+DEMO_SCRIPT.md
