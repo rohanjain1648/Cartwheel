@@ -12,7 +12,17 @@ const CATEGORY_META = {
   furniture: { label: "Shared Furniture", icon: Armchair, desc: "Big-ticket items with budget constraints" },
 };
 
-export function CartBoard({ state }: { state: RoomStateSnapshot }) {
+export function CartBoard({
+  state,
+  roomCode,
+  myParticipantId,
+  onChanged,
+}: {
+  state: RoomStateSnapshot;
+  roomCode?: string;
+  myParticipantId?: string;
+  onChanged?: () => void;
+}) {
   const [activeTab, setActiveTab] = useState<"all" | "grocery" | "gift" | "furniture">("all");
   const categories = ["grocery", "gift", "furniture"] as const;
 
@@ -132,6 +142,9 @@ export function CartBoard({ state }: { state: RoomStateSnapshot }) {
                     key={item.id}
                     cartItem={item}
                     participants={state.participants}
+                    roomCode={roomCode}
+                    myParticipantId={myParticipantId}
+                    onChanged={onChanged}
                   />
                 ))}
               </div>

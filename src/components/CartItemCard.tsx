@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import type { CartItem, CatalogItem, Participant } from "@/lib/types";
-import { Check, User, Users, ShoppingBag, Gift, Armchair, Tag } from "lucide-react";
+import { Check, User, Users, ShoppingBag, Gift, Armchair, Tag, Hand, RefreshCw } from "lucide-react";
+import { loadSession } from "@/lib/session";
 
 const CATEGORY_ICONS: Record<string, typeof ShoppingBag> = {
   grocery: ShoppingBag,
@@ -10,13 +14,43 @@ const CATEGORY_ICONS: Record<string, typeof ShoppingBag> = {
 export function CartItemCard({
   cartItem,
   participants,
+  roomCode,
+  myParticipantId,
+  onChanged,
 }: {
   cartItem: CartItem & { catalogItem: CatalogItem };
   participants: Participant[];
+  roomCode?: string;
+  myParticipantId?: string;
+  onChanged?: () => void;
 }) {
   const claimant = participants.find((p) => p.id === cartItem.claimed_by);
   const IconComponent = CATEGORY_ICONS[cartItem.catalogItem.category] || ShoppingBag;
   const isPaid = cartItem.paid_by.length > 0;
+  const [claiming, setClaiming] = useState(false);
+  // Show a claim control unless I'm already the claimant — claiming someone
+  // else's item is exactly what should trigger a pending approval on them.
+  const canClaim = roomCode && cartItem.claimed_by !== myParticipantId;
+
+  async function handleClaim() {
+    if (!roomCode) return;
+    const session = loadSession(roomCode);
+    if (!session) return;
+    setClaiming(true);
+    try {
+      await fetch(`/api/rooms/${roomCode}/tools/propose-change`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-session-token": session.sessionToken },
+        body: JSON.stringify({
+          action_type: "claim_item",
+          payload: { cart_item_id: cartItem.id },
+        }),
+      });
+      onChanged?.();
+    } finally {
+      setClaiming(false);
+    }
+  }
 
   return (
     <div className="group relative flex flex-col justify-between rounded-2xl glass-panel p-4 border border-line shadow-card transition-all duration-200 hover:border-line-strong hover:shadow-card-hover">
@@ -76,11 +110,33 @@ export function CartItemCard({
             </div>
           )}
 
-          {cartItem.qty > 1 && (
-            <span className="font-mono text-[10px] text-ink-muted bg-canvas-muted px-1.5 py-0.5 rounded border border-line-subtle">
-              Qty: {cartItem.qty}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {canClaim && (
+              <button
+                disabled={claiming}
+                onClick={handleClaim}
+                title={
+                  claimant
+                    ? `Claim from ${claimant.display_name} — this needs their approval`
+                    : "Claim this item — auto-approved since nobody else has it"
+                }
+                className="flex items-center gap-1 rounded-lg border border-line bg-ink px-2 py-1 font-display text-[10px] font-bold text-white shadow-sm hover:bg-neutral-800 disabled:opacity-50 transition-all"
+              >
+                {claiming ? (
+                  <RefreshCw className="size-3 animate-spin text-brand-lime" />
+                ) : (
+                  <Hand className="size-3 text-brand-lime" />
+                )}
+                <span>{claimant ? `Claim from ${claimant.display_name}` : "Claim"}</span>
+              </button>
+            )}
+
+            {cartItem.qty > 1 && (
+              <span className="font-mono text-[10px] text-ink-muted bg-canvas-muted px-1.5 py-0.5 rounded border border-line-subtle">
+                Qty: {cartItem.qty}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Paid By Status Chips */}

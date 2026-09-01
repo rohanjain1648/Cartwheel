@@ -133,7 +133,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Main Left Column: Cart Board (8 cols) */}
           <div className="lg:col-span-8 space-y-6">
-            <CartBoard state={state} />
+            <CartBoard
+              state={state}
+              roomCode={roomCode}
+              myParticipantId={participantId}
+              onChanged={refetch}
+            />
           </div>
 
           {/* Right Column: Approval Inbox & Audit Feed (4 cols) */}
